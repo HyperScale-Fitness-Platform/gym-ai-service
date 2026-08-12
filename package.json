@@ -1,18 +1,20 @@
 {
-  "name": "gym-name-service",
-  "version": "1.0.0",
-  "description": "Gym Microservice template standard",
+  "name": "gym-ai-service",
+  "version": "0.1.0",
+  "private": true,
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "lint": "eslint src/**/*.js",
-    "test": "jest"
+    "start": "node src/index.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "axios": "^1.19.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.23.0"
+  },
   "devDependencies": {
-    "nodemon": "^3.0.0",
-    "jest": "^29.0.0",
-    "eslint": "^8.0.0"
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0"
   }
 }
