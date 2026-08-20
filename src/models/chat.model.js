@@ -18,6 +18,19 @@ async function findSessionById(sessionId, userId) {
   return result.rows[0];
 }
 
+async function findLatestSession(userId) {
+  const result = await pool.query(
+    `SELECT *
+     FROM chat_sessions
+     WHERE user_id = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId]
+  );
+
+  return result.rows[0];
+}
+
 async function addMessage(sessionId, role, content) {
   const result = await pool.query(
     `INSERT INTO chat_messages (session_id, role, content)
@@ -38,4 +51,4 @@ async function getMessagesBySession(sessionId) {
   return result.rows;
 }
 
-module.exports = { createSession, findSessionById, addMessage, getMessagesBySession };
+module.exports = { createSession, findSessionById, addMessage, findLatestSession, getMessagesBySession };

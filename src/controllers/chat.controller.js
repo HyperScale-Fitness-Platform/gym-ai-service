@@ -18,5 +18,19 @@ async function chat(req, res, next) {
     next(err);
   }
 }
+async function getHistory(req, res, next) {
+  try {
+    const userId = req.user.id;
 
-module.exports = { chat };
+    const result = await chatService.getChatHistory({
+      userId,
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+module.exports = { chat, getHistory };

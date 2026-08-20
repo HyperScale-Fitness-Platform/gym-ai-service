@@ -56,4 +56,30 @@ async function sendMessage({ userId, sessionId, userMessage }) {
   return { sessionId: session.id, reply: responseText };
 }
 
-module.exports = { sendMessage };
+/*
+ * Get the customer's latest AI conversation.
+ */
+async function getChatHistory({ userId }) {
+  const session = await chatModel.findLatestSession(userId);
+
+  /*
+   * Customer has never used the AI assistant.
+   */
+  if (!session) {
+    return {
+      sessionId: null,
+      messages: [],
+    };
+  }
+
+  const messages = await chatModel.getMessagesBySession(
+    session.id
+  );
+
+  return {
+    sessionId: session.id,
+    messages,
+  };
+}
+
+module.exports = { sendMessage, getChatHistory };
