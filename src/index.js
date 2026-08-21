@@ -3,6 +3,7 @@ dotenv.config();
 
 const express = require("express");
 const chatRoutes = require("./routes/chat.routes");
+const planRoutes = require("./routes/plan.routes");
 const { attachUserFromHeaders } = require("./middleware/auth.middleware");
 const { errorHandler } = require("./middleware/errorHandler.middleware");
 
@@ -16,6 +17,7 @@ app.get("/health", (req, res) => {
 
 app.use(attachUserFromHeaders);
 app.use('/ai', chatRoutes);
+app.use('/ai', planRoutes);
 
 app.use(errorHandler);
 
