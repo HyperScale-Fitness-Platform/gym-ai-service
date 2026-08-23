@@ -4,8 +4,10 @@ dotenv.config();
 const express = require("express");
 const chatRoutes = require("./routes/chat.routes");
 const planRoutes = require("./routes/plan.routes");
+const planChatRoutes = require("./routes/planChat.routes");
 const { attachUserFromHeaders } = require("./middleware/auth.middleware");
 const { errorHandler } = require("./middleware/errorHandler.middleware");
+const { startPlanHistoryConsumer } = require("./config/kafka");
 
 const app = express();
 
@@ -18,6 +20,7 @@ app.get("/health", (req, res) => {
 app.use(attachUserFromHeaders);
 app.use('/ai', chatRoutes);
 app.use('/ai', planRoutes);
+app.use('/ai', planChatRoutes);
 
 app.use(errorHandler);
 
@@ -25,3 +28,5 @@ const PORT = process.env.PORT || 4006;
 app.listen(PORT, () => {
   console.log(`ai-service listening on port ${PORT}`);
 });
+
+startPlanHistoryConsumer();

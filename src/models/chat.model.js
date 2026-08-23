@@ -18,6 +18,13 @@ async function findSessionById(sessionId, userId) {
   return result.rows[0];
 }
 
+async function touchSessionDraft(sessionId) {
+  await pool.query(
+    "UPDATE chat_sessions SET last_draft_at = now() WHERE id = $1",
+    [sessionId]
+  );
+}
+
 async function findLatestSession(userId) {
   const result = await pool.query(
     `SELECT *
@@ -51,4 +58,4 @@ async function getMessagesBySession(sessionId) {
   return result.rows;
 }
 
-module.exports = { createSession, findSessionById, addMessage, findLatestSession, getMessagesBySession };
+module.exports = { createSession, findSessionById, touchSessionDraft, addMessage, findLatestSession, getMessagesBySession };
