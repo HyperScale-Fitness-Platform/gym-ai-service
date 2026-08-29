@@ -1,5 +1,3 @@
-const { pipeline } = require("@xenova/transformers");
-
 let embedder = null;
 
 async function getEmbedder() {
