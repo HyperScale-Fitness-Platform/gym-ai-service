@@ -126,6 +126,33 @@ docker run -d \
 docker logs gym-ai-db | tail -n 20
 ```
 
+### Install pgvector in Postgres
+
+```bash
+docker exec -u 0 -it gym-ai-db bash -c "apt-get update && apt-get install -y postgresql-16-pgvector"
+```
+
+Then enable the extension and create the vector table inside Postgres:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE equipment_docs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  embedding VECTOR(768),
+  -- 768 matches a common embedding model dimension — adjust to match
+  -- whichever embedding model you actually use (see Step 2).
+  created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ON equipment_docs USING ivfflat (embedding vector_cosine_ops);
+-- This index makes similarity search fast even with thousands of rows --
+-- without it, every search does a full table scan computing distance
+-- against every row.
+```
+
 ### Create the schema
 
 The schema is stored in `db.txt`.
@@ -198,6 +225,47 @@ postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>
 - `system_instruction` from `src/knowledge/app-knowledge.js`
 
 The adapter converts Gemini's response into the app's expected `output_text` shape, which becomes the assistant reply.
+
+## RAG System Feature
+
+This service can also support a retrieval-augmented generation (RAG) flow for equipment and gym knowledge.
+
+### Purpose
+
+The goal is to improve answer quality by retrieving the most relevant documents from Postgres before sending the user query to Gemini. Instead of relying only on static prompt knowledge, the app can pull relevant context from stored equipment information and ground the AI response in that content.
+
+### Vector database setup
+
+The vector table below is the storage layer for searchable equipment knowledge:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE equipment_docs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  embedding VECTOR(768),
+  created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ON equipment_docs USING ivfflat (embedding vector_cosine_ops);
+```
+
+### RAG flow
+
+1. An equipment or facility document is stored in `equipment_docs` with a vector embedding.
+2. A user asks a question about the gym or equipment.
+3. The service embeds the query using the same embedding model used for the documents.
+4. Postgres performs a vector similarity search against `equipment_docs`.
+5. The top matching rows are returned as retrieval context.
+6. Gemini receives the retrieved context plus the user question and responds using the most relevant information.
+
+### Why this matters
+
+- Reduces hallucinations by grounding answers in stored gym knowledge
+- Improves retrieval for equipment-specific questions
+- Allows future expansion to workout guides, policies, machine instructions, and onboarding content
 
 ## Testing
 
@@ -287,7 +355,3 @@ npm start
 docker ps
 docker logs gym-ai-db
 ```
-
-
-
-docker exec -u 0 -it gym-ai-db bash -c "apt-get update && apt-get install -y postgresql-16-pgvector"
