@@ -19,8 +19,8 @@ app.get("/health", (req, res) => {
 
 app.use(attachUserFromHeaders);
 app.use('/ai', chatRoutes);
-// app.use('/ai', planRoutes);
-// app.use('/ai', planChatRoutes);
+app.use('/ai', planRoutes);
+app.use('/ai', planChatRoutes);
 
 app.use(errorHandler);
 
@@ -29,4 +29,4 @@ app.listen(PORT, () => {
   console.log(`ai-service listening on port ${PORT}`);
 });
 
-// startPlanHistoryConsumer();
+startPlanHistoryConsumer();
