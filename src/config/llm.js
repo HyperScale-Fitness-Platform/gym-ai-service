@@ -1,33 +1,40 @@
-const axios = require("axios");
+const Groq = require("groq-sdk");
 
-const BASE_URL = process.env.LLM_BASE_URL;
-const API_KEY = process.env.SBG_API_KEY;
-const MODEL_ID = process.env.LLM_MODEL_ID;
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
-async function callLLM({ messages, systemPrompt }, retries = 2) {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const response = await axios.post(
-        `${BASE_URL}/student/chat`,
-        { model_id: MODEL_ID, messages, system_prompt: systemPrompt },
-        { headers: { Authorization: `Bearer ${API_KEY}` }, timeout: 120000 }
-      );
-      return response.data;
-    } catch (err) {
-      const isLastAttempt = attempt === retries;
-      const isNetworkError = err.code === "ENOTFOUND" || err.code === "ECONNRESET" || err.code === "ETIMEDOUT";
+const MODEL_ID = process.env.GROQ_MODEL;
 
-      if (isLastAttempt || !isNetworkError) {
-        throw err;
-        // Only retry on genuine NETWORK issues (DNS, connection reset,
-        // timeout) — not on things like a 400 bad request, which would
-        // fail identically every retry and just waste time.
-      }
+async function callLLM({ messages, systemPrompt }) {
+  try {
+    const formattedMessages = [
+      { role: "system", content: systemPrompt || "" },
+      ...messages.map((m) => ({
+        role: m.role === "model" ? "assistant" : m.role,
+        content: m.content,
+      })),
+    ];
 
-      console.warn(`LLM call failed (attempt ${attempt + 1}/${retries + 1}), retrying...`);
-      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-      // Simple exponential-ish backoff: wait longer between each retry.
-    }
+    const chatCompletion = await groq.chat.completions.create({
+      model: MODEL_ID,
+      messages: formattedMessages,
+      temperature: 0.3,
+    });
+
+    const reply = chatCompletion.choices[0]?.message?.content || "";
+    const totalTokens = chatCompletion.usage?.total_tokens || 0;
+
+    return {
+      output_text: reply,
+      usage: {
+        total_tokens: totalTokens,
+      },
+      actual_cost_usd: 0,
+    };
+  } catch (err) {
+    console.error("Groq API error:", err.message);
+    throw { status: 502, message: "AI service is temporarily unavailable" };
   }
 }
 

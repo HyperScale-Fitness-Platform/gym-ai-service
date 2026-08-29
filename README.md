@@ -71,18 +71,18 @@ DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=devpass
 DB_NAME=gym_ai
-SBG_API_KEY=<your-sbg-api-key>
-LLM_BASE_URL=http://apiaccess.iti.net.eg/api/v1
-LLM_MODEL_ID=openai.gpt-oss-120b-1:0
+GEMINI_API_KEY=<your-gemini-api-key>
+GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta/models
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
 ### Explanation
 
 - `PORT` - port where the service listens (default `4006`)
 - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` - PostgreSQL connection settings
-- `SBG_API_KEY` - API key used to authenticate with the LLM provider
-- `LLM_BASE_URL` - base URL for the external LLM API
-- `LLM_MODEL_ID` - model identifier for the LLM call
+- `GEMINI_API_KEY` - API key used to authenticate with Google Gemini
+- `GEMINI_API_BASE_URL` - Gemini REST endpoint base URL
+- `GEMINI_MODEL` - Gemini model name used for chat generation
 
 ## Install Dependencies
 
@@ -191,13 +191,13 @@ postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>
 
 ## LLM Integration
 
-`src/config/llm.js` sends requests to a student chat endpoint:
+`src/config/llm.js` sends requests to the Gemini generate-content API:
 
-- `model_id` from `LLM_MODEL_ID`
-- `messages` array containing prior chat history plus the current user message
-- `system_prompt` from `src/knowledge/app-knowledge.js`
+- `MODEL_ID` from `GEMINI_MODEL`
+- `contents` array containing prior chat history plus the current user message
+- `system_instruction` from `src/knowledge/app-knowledge.js`
 
-The response is expected to include `output_text`, which becomes the assistant reply.
+The adapter converts Gemini's response into the app's expected `output_text` shape, which becomes the assistant reply.
 
 ## Testing
 
@@ -288,3 +288,6 @@ docker ps
 docker logs gym-ai-db
 ```
 
+
+
+docker exec -u 0 -it gym-ai-db bash -c "apt-get update && apt-get install -y postgresql-16-pgvector"

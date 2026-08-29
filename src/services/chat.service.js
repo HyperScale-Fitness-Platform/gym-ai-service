@@ -1,6 +1,7 @@
 const { callLLM } = require("../config/llm");
 const { APP_KNOWLEDGE } = require("../knowledge/app-knowledge");
 const chatModel = require("../models/chat.model");
+const ragService = require("./rag.service");
 
 async function sendMessage({ userId, sessionId, userMessage }) {
   if (!userMessage || typeof userMessage !== "string") {
@@ -19,9 +20,21 @@ async function sendMessage({ userId, sessionId, userMessage }) {
 
   const priorMessages = await chatModel.getMessagesBySession(session.id, 20);
 
-  // Their API's message shape is just { role, content } — same as
-  // OpenAI's format, EXCEPT system prompt is passed separately, not as
-  // a message in this array. Roles here should be "user" / "assistant".
+  // Retrieve relevant equipment docs for this specific question.
+  const relevantDocs = await ragService.retrieveRelevantDocs(userMessage);
+  
+  // Build a small context block from whatever was retrieved, only
+  // included if something reasonably relevant was actually found.
+  let ragContext = "";
+  if (relevantDocs.length > 0 && relevantDocs[0].similarity > 0.5) {
+    // 0.5 is a similarity THRESHOLD — below this, retrieved docs are
+    // probably not actually relevant, and including them would just
+    // confuse the model rather than help. Tune this value based on
+    // testing with your actual embedding model.
+    ragContext = "\n\nRELEVANT EQUIPMENT INFORMATION:\n" +
+      relevantDocs.map(d => `- ${d.title}: ${d.content}`).join("\n");
+  }
+
   const messages = [
     ...priorMessages.map((msg) => ({
       role: msg.role,
@@ -33,7 +46,7 @@ async function sendMessage({ userId, sessionId, userMessage }) {
   
   let responseText;
   try {
-    const data = await callLLM({ messages, systemPrompt: APP_KNOWLEDGE });
+    const data = await callLLM({ messages, systemPrompt: APP_KNOWLEDGE + ragContext});
   
     responseText = data.output_text;
   
