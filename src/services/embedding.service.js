@@ -4,6 +4,8 @@ let embedder = null;
 
 async function getEmbedder() {
   if (!embedder) {
+    // Dynamic import to support ESM package inside CommonJS codebase
+    const { pipeline } = await import("@xenova/transformers");
     embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
   }
   return embedder;
